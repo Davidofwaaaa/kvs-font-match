@@ -30,7 +30,8 @@
   var drag = null;
   var layout = null;
   var catalog = null;
-  var massCache = {};
+  var installed = [];
+  var watcher = null;
 
   function fonts() {
     return (window.KVS && window.KVS.fonts) || [];
@@ -100,6 +101,7 @@
     if (kind !== "h") {
       state.link.v = lines.filter(function (line) { return line.axis === "v"; }).map(function (line) { return line.value; });
     }
+    state.link.mass = state.mass;
   }
 
   function loadVariation(item, text) {
@@ -130,7 +132,8 @@
     return {
       grid: grid,
       h: lines.filter(function (line) { return line.axis === "h"; }).map(function (line) { return line.value; }),
-      v: lines.filter(function (line) { return line.axis === "v"; }).map(function (line) { return line.value; })
+      v: lines.filter(function (line) { return line.axis === "v"; }).map(function (line) { return line.value; }),
+      mass: state.mass
     };
   }
 
@@ -156,8 +159,31 @@
       state.lines = defaultLines(state.grid);
     }
     pairNote();
+    fonts().forEach(registerFace);
     paintMenu();
     draw();
+  }
+
+  function previewWord() {
+    return (composer.value || "A").slice(0, 24);
+  }
+
+  function registerFace(font) {
+    if (!font || !font.buffer || font.previewFamily) return;
+    var family = "kvs-" + String(font.id).replace(/[^a-z0-9]+/gi, "-");
+    font.previewFamily = family;
+    var face = new FontFace(family, font.buffer);
+    face.load().then(function (loaded) {
+      document.fonts.add(loaded);
+      refreshPreviews();
+    }).catch(function () {});
+  }
+
+  function refreshPreviews() {
+    var word = previewWord();
+    menu.querySelectorAll(".preview").forEach(function (node) {
+      node.textContent = word;
+    });
   }
 
   function paintMenu() {
@@ -166,31 +192,49 @@
     if (state.library === "local") {
       fonts().filter(function (font) {
         return font.source === "local" && (!query || font.name.toLowerCase().indexOf(query) !== -1);
-      }).forEach(function (font) { addRow(font.name, font.id === state[state.slot], function () { assign(font); }); });
+      }).forEach(function (font) {
+        addRow(font.name, font.id === state[state.slot], font.previewFamily, function () { assign(font); });
+      });
+      installed.forEach(function (face) {
+        var label = face.fullName || face.family;
+        if (query && label.toLowerCase().indexOf(query) === -1 && face.family.toLowerCase().indexOf(query) === -1) return;
+        addRow(label, false, '"' + face.family + '"', function () { loadInstalled(face); });
+      });
+      if (!menu.children.length) addRow(query ? "No match" : "No local fonts", false, "", function () {});
       return;
     }
     if (!catalog) {
-      addRow("Loading Google Fonts", false, function () {});
+      addRow("Loading Google Fonts", false, "", function () {});
       return;
     }
-    var shown = 0;
     catalog.forEach(function (item) {
-      if (shown >= 80) return;
       if (query && item.family.toLowerCase().indexOf(query) === -1) return;
-      shown += 1;
-      addRow(item.family, false, function () { loadGoogle(item); });
+      var family = "kvs-" + item.id;
+      var button = addRow(item.family, false, "", function () { loadGoogle(item); });
+      button.dataset.font = "https://cdn.jsdelivr.net/fontsource/fonts/" + item.id + "@latest/" + item.subset + "-" + item.weight + "-normal.ttf";
+      button.dataset.family = family;
+      if (watcher) watcher.observe(button);
     });
-    if (!shown) addRow(query ? "No match" : "Type to search", false, function () {});
+    if (!menu.children.length) addRow(query ? "No match" : "Type to search", false, "", function () {});
   }
 
-  function addRow(label, selected, onClick) {
+  function addRow(label, selected, family, onClick) {
     var button = document.createElement("button");
     button.type = "button";
-    button.textContent = label;
     button.setAttribute("role", "option");
     button.setAttribute("aria-selected", selected ? "true" : "false");
+    var preview = document.createElement("span");
+    preview.className = "preview";
+    preview.textContent = previewWord();
+    if (family) preview.style.fontFamily = family + ", sans-serif";
+    var meta = document.createElement("span");
+    meta.className = "meta";
+    meta.textContent = label;
+    button.appendChild(preview);
+    button.appendChild(meta);
     button.addEventListener("click", onClick);
     menu.appendChild(button);
+    return button;
   }
 
   function assign(entry) {
@@ -225,6 +269,7 @@
         on: false
       };
       fonts().push(entry);
+      registerFace(entry);
       assign(entry);
       setStatus("");
     }).catch(function () {
@@ -232,56 +277,35 @@
     });
   }
 
-  function textValue() {
-    return (composer.value || "A").slice(0, 48);
+  function loadInstalled(face) {
+    var existing = fonts().filter(function (font) { return font.systemId === face.postscriptName; })[0];
+    if (existing) {
+      assign(existing);
+      return;
+    }
+    setStatus("Loading " + (face.fullName || face.family));
+    face.blob().then(function (blob) { return blob.arrayBuffer(); }).then(function (buffer) {
+      var parsed = opentype.parse(buffer);
+      var entry = {
+        id: "system-" + face.postscriptName,
+        systemId: face.postscriptName,
+        name: face.fullName || face.family,
+        source: "local",
+        parsed: parsed,
+        buffer: buffer,
+        on: false,
+        previewFamily: '"' + face.family + '"'
+      };
+      fonts().push(entry);
+      assign(entry);
+      setStatus(installed.length + " installed fonts");
+    }).catch(function () {
+      setStatus((face.fullName || face.family) + " could not be read.");
+    });
   }
 
-  function inkCenter(path) {
-    var key = (path.commands || []).map(function (command) { return command.type + (command.x || 0); }).join("").slice(0, 120);
-    if (massCache[key]) return massCache[key];
-    var minX = Infinity;
-    var minY = Infinity;
-    var maxX = -Infinity;
-    var maxY = -Infinity;
-    (path.commands || []).forEach(function (command) {
-      [command.x, command.x1, command.x2].forEach(function (value, index) {
-        if (value == null) return;
-        var y = index === 0 ? command.y : index === 1 ? command.y1 : command.y2;
-        if (value < minX) minX = value;
-        if (value > maxX) maxX = value;
-        if (y < minY) minY = y;
-        if (y > maxY) maxY = y;
-      });
-    });
-    if (!isFinite(minX)) return { x: 0, y: 0 };
-    var size = 48;
-    var board = document.createElement("canvas");
-    board.width = size;
-    board.height = size;
-    var g = board.getContext("2d");
-    var spanX = Math.max(1, maxX - minX);
-    var spanY = Math.max(1, maxY - minY);
-    var scale = Math.min((size - 2) / spanX, (size - 2) / spanY);
-    g.setTransform(scale, 0, 0, -scale, 1 - minX * scale, size - 1 + minY * scale);
-    g.beginPath();
-    traceOn(g, path, 0, 0, 1);
-    g.fill();
-    var pixels = g.getImageData(0, 0, size, size).data;
-    var sum = 0;
-    var sx = 0;
-    var sy = 0;
-    var i;
-    for (i = 0; i < size * size; i += 1) {
-      if (pixels[i * 4 + 3] < 16) continue;
-      sum += 1;
-      sx += i % size;
-      sy += Math.floor(i / size);
-    }
-    var center = sum
-      ? { x: (sx / sum - 1) / scale + minX, y: (size - 1 - sy / sum) / scale + minY }
-      : { x: (minX + maxX) / 2, y: (minY + maxY) / 2 };
-    massCache[key] = center;
-    return center;
+  function textValue() {
+    return (composer.value || "A").slice(0, 48);
   }
 
   function draw() {
@@ -329,13 +353,8 @@
     var ink = document.body.dataset.theme === "dark" ? "#ffffff" : "#000000";
     items.forEach(function (item) {
       cursor += item.gap;
-      var com = state.mass ? inkCenter(item.made.path) : null;
       var origin = cursor;
       var baseline = mid + state.size * 0.15;
-      if (com) {
-        origin = cursor + item.slot / 2 - com.x * scale;
-        baseline = mid + com.y * scale;
-      }
       item.x = origin;
       item.scale = scale;
       item.advance = item.slot;
@@ -601,14 +620,16 @@
       return file.arrayBuffer().then(function (buffer) {
         try {
           var parsed = opentype.parse(buffer);
-          fonts().push({
+          var entry = {
             id: "local-" + file.name + "-" + fonts().length,
             name: file.name.replace(/\.[^.]+$/, "").replace(/[-_]/g, " "),
             source: "local",
             parsed: parsed,
             buffer: buffer,
             on: false
-          });
+          };
+          fonts().push(entry);
+          registerFace(entry);
         } catch (error) {}
       });
     })).then(function () {
@@ -648,7 +669,7 @@
     composer.focus();
     draw();
   });
-  composer.addEventListener("input", draw);
+  composer.addEventListener("input", function () { refreshPreviews(); draw(); });
   composer.addEventListener("keyup", draw);
   composer.addEventListener("blur", function () { caret.hidden = true; });
   document.getElementById("lib-local").addEventListener("click", function () {
@@ -743,8 +764,45 @@
   document.getElementById("mass-btn").addEventListener("click", function () {
     state.mass = !state.mass;
     document.getElementById("mass-btn").setAttribute("aria-pressed", state.mass ? "true" : "false");
+    writeBack();
     draw();
   });
+  document.getElementById("local-fonts").addEventListener("click", function () {
+    if (!window.queryLocalFonts) {
+      setStatus("This browser cannot list installed fonts. Use Open folder.");
+      return;
+    }
+    window.queryLocalFonts().then(function (faces) {
+      installed = faces;
+      state.library = "local";
+      document.getElementById("lib-local").setAttribute("aria-pressed", "true");
+      document.getElementById("lib-google").setAttribute("aria-pressed", "false");
+      setStatus(faces.length + " installed fonts");
+      paintMenu();
+    }).catch(function () {
+      setStatus("Installed fonts need permission.");
+    });
+  });
+  watcher = new IntersectionObserver(function (entries) {
+    entries.forEach(function (entry) {
+      if (!entry.isIntersecting) return;
+      var button = entry.target;
+      watcher.unobserve(button);
+      var family = button.dataset.family;
+      var url = button.dataset.font;
+      if (!family || !url) return;
+      var preview = button.querySelector(".preview");
+      if (document.fonts.check("16px '" + family + "'")) {
+        if (preview) preview.style.fontFamily = '"' + family + '", sans-serif';
+        return;
+      }
+      var face = new FontFace(family, "url(" + url + ")");
+      face.load().then(function (loaded) {
+        document.fonts.add(loaded);
+        if (preview) preview.style.fontFamily = '"' + family + '", sans-serif';
+      }).catch(function () {});
+    });
+  }, { root: menu });
   document.getElementById("size").addEventListener("input", function (event) { state.size = Number(event.target.value); draw(); });
   document.getElementById("track").addEventListener("input", function (event) { state.track = Number(event.target.value); draw(); });
   document.getElementById("kern").addEventListener("input", function (event) { state.kern = Number(event.target.value); draw(); });
@@ -752,6 +810,7 @@
     composer.value = "";
     state.letterLines = {};
     composer.focus();
+    refreshPreviews();
     draw();
   });
   document.getElementById("save-svg").addEventListener("click", saveSvg);

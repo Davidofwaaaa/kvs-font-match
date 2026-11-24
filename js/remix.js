@@ -154,6 +154,64 @@
     return spans;
   }
 
+  function pathCenter(path) {
+    var commands = (path && path.commands) || [];
+    if (!commands.length) return null;
+    var minX = Infinity;
+    var minY = Infinity;
+    var maxX = -Infinity;
+    var maxY = -Infinity;
+    commands.forEach(function (command) {
+      [command.x, command.x1, command.x2].forEach(function (value, index) {
+        if (value == null) return;
+        var y = index === 0 ? command.y : index === 1 ? command.y1 : command.y2;
+        if (value < minX) minX = value;
+        if (value > maxX) maxX = value;
+        if (y < minY) minY = y;
+        if (y > maxY) maxY = y;
+      });
+    });
+    if (!isFinite(minX)) return null;
+    var size = 64;
+    var board = document.createElement("canvas");
+    board.width = size;
+    board.height = size;
+    var g = board.getContext("2d");
+    var spanX = Math.max(1, maxX - minX);
+    var spanY = Math.max(1, maxY - minY);
+    var scale = Math.min((size - 2) / spanX, (size - 2) / spanY);
+    g.setTransform(scale, 0, 0, -scale, 1 - minX * scale, size - 1 + minY * scale);
+    g.beginPath();
+    commands.forEach(function (command) {
+      if (command.type === "M") g.moveTo(command.x, command.y);
+      else if (command.type === "L") g.lineTo(command.x, command.y);
+      else if (command.type === "C") g.bezierCurveTo(command.x1, command.y1, command.x2, command.y2, command.x, command.y);
+      else if (command.type === "Q") g.quadraticCurveTo(command.x1, command.y1, command.x, command.y);
+      else if (command.type === "Z") g.closePath();
+    });
+    g.fill();
+    var pixels = g.getImageData(0, 0, size, size).data;
+    var sum = 0;
+    var sx = 0;
+    var sy = 0;
+    var i;
+    for (i = 0; i < size * size; i += 1) {
+      if (pixels[i * 4 + 3] < 16) continue;
+      sum += 1;
+      sx += i % size;
+      sy += Math.floor(i / size);
+    }
+    if (!sum) return { x: (minX + maxX) / 2, y: (minY + maxY) / 2 };
+    return { x: (sx / sum - 1) / scale + minX, y: (size - 1 - sy / sum) / scale + minY };
+  }
+
+  function alignMass(compound, pathA, pathB) {
+    var a = pathCenter(pathA);
+    var b = pathCenter(pathB);
+    if (!a || !b || !compound) return;
+    compound.translate(new paper.Point(a.x - b.x, a.y - b.y));
+  }
+
   function remixChar(fontA, fontB, ch, spec) {
     var glyphA = glyphOf(fontA, ch);
     var glyphB = glyphOf(fontB, ch);
@@ -174,6 +232,7 @@
     try {
       compoundA = toCompound(glyphA);
       compoundB = toCompound(glyphB);
+      if (spec.mass) alignMass(compoundB, glyphA.path, glyphB.path);
       cuts = cutsFor(spec);
     } catch (error) {
       paper.project.clear();

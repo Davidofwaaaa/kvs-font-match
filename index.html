@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>KVS tools [Font match]</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' fill='%23fff' stroke='%23000'/%3E%3Crect x='1' y='1' width='7' height='14' fill='%23000'/%3E%3C/svg%3E" />
-  <link rel="stylesheet" href="css/styles.css?v=4" />
+  <link rel="stylesheet" href="css/styles.css?v=5" />
 </head>
 <body data-view="specimen">
   <header class="mast">
@@ -38,6 +38,7 @@
       </div>
       <p class="note" id="pair-note"></p>
       <div id="font-menu" role="listbox" aria-label="Fonts"></div>
+      <button type="button" id="local-fonts">Installed fonts</button>
       <button type="button" id="open-folder">Open folder</button>
       <input id="folder" type="file" accept=".ttf,.otf,.woff,.woff2" webkitdirectory multiple hidden />
 
@@ -71,6 +72,9 @@
       <div id="letter-picks" hidden></div>
 
       <h2 class="section">Type</h2>
+      <label class="param" for="composer">Text
+        <input id="composer" type="text" value="A" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="Specimen text" />
+      </label>
       <label class="param" for="size">Size
         <input id="size" type="range" min="40" max="900" value="280" />
       </label>
@@ -122,9 +126,11 @@
         <button type="button" id="view-slice-3" aria-pressed="true">Slice</button>
       </div>
       <h2>Image</h2>
-      <button type="button" id="slice-open">Open image</button>
-      <input id="slice-file" type="file" accept="image/*" hidden />
+      <button type="button" id="slice-open">Add image</button>
+      <input id="slice-file" type="file" accept="image/*" multiple hidden />
       <p class="note" id="slice-name">No image</p>
+      <div id="slice-layers"></div>
+      <button type="button" id="slice-random">Randomize</button>
       <h2 class="section">Grid</h2>
       <div class="grids" id="slice-grids" role="group" aria-label="Slice grid">
         <button type="button" data-grid="hHalfFold" aria-pressed="true" aria-label="Horizontal">
@@ -150,7 +156,7 @@
         <button type="button" id="slice-add-v">V</button>
         <button type="button" id="slice-reset">Reset</button>
       </div>
-      <p class="note">Drag a line on the original. Drag a cell on the right to pan its crop.</p>
+      <p class="note">Drag a line on the original. Drag the original to move the selected image. Drag a cell on the right to pan its crop.</p>
       <button type="button" id="slice-reset-pan">Reset pans</button>
       <h2 class="section">Export</h2>
       <button type="button" id="slice-png">PNG</button>
@@ -160,7 +166,6 @@
     <section class="field" id="field" aria-label="Specimen">
       <div id="specimen-view">
         <canvas id="specimen" aria-label="Mixed specimen"></canvas>
-        <input id="composer" aria-label="Specimen text" value="A" autocomplete="off" spellcheck="false" />
         <div id="guides"></div>
         <div id="caret" hidden></div>
       </div>
@@ -214,9 +219,9 @@
   <canvas id="paper" hidden></canvas>
   <script src="vendor/opentype.min.js"></script>
   <script src="vendor/paper-core.min.js"></script>
-  <script src="js/remix.js?v=2"></script>
-  <script src="js/app.js?v=7"></script>
-  <script src="js/specimen.js?v=4"></script>
-  <script src="js/slice.js?v=1"></script>
+  <script src="js/remix.js?v=3"></script>
+  <script src="js/app.js?v=8"></script>
+  <script src="js/specimen.js?v=5"></script>
+  <script src="js/slice.js?v=2"></script>
 </body>
 </html>

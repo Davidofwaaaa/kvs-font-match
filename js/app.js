@@ -225,7 +225,7 @@
   }
 
   function specKey(item) {
-    return item.a + "|" + item.b + "|" + item.grid + "|" + item.h.join(",") + "|" + item.v.join(",");
+    return item.a + "|" + item.b + "|" + item.grid + "|" + item.h.join(",") + "|" + item.v.join(",") + "|" + (item.mass ? "m" : "");
   }
 
   function mixedChar(item, ch) {

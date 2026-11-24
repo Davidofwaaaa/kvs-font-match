@@ -7,6 +7,8 @@
   var cctx = cut.getContext("2d");
   var guidesEl = document.getElementById("slice-guides");
   var image = null;
+  var layers = [];
+  var selectedLayer = 0;
   var grid = "hHalfFold";
   var lines = [];
   var pans = {};
@@ -99,8 +101,119 @@
     return fit(canvas);
   }
 
+  function rebuildPlate() {
+    if (!layers.length) {
+      image = null;
+      return;
+    }
+    var w = 1;
+    var h = 1;
+    layers.forEach(function (layer) {
+      w = Math.max(w, layer.image.width);
+      h = Math.max(h, layer.image.height);
+    });
+    var board = document.createElement("canvas");
+    board.width = w;
+    board.height = h;
+    var g = board.getContext("2d");
+    layers.forEach(function (layer) {
+      g.globalCompositeOperation = layer.blend || "source-over";
+      g.drawImage(layer.image, (w - layer.image.width) / 2 + (layer.dx || 0), (h - layer.image.height) / 2 + (layer.dy || 0));
+    });
+    image = board;
+  }
+
+  function paintLayers() {
+    var host = document.getElementById("slice-layers");
+    host.innerHTML = "";
+    document.getElementById("slice-name").textContent = layers.length ? layers.length + (layers.length === 1 ? " image" : " images") : "No image";
+    var modes = ["source-over", "multiply", "screen", "overlay", "darken", "lighten", "difference", "exclusion"];
+    layers.forEach(function (layer, index) {
+      var row = document.createElement("div");
+      row.className = "layer";
+      var name = document.createElement("button");
+      name.type = "button";
+      name.textContent = layer.name;
+      name.setAttribute("aria-pressed", index === selectedLayer ? "true" : "false");
+      name.addEventListener("click", function () {
+        selectedLayer = index;
+        paintLayers();
+      });
+      var blend = document.createElement("select");
+      blend.setAttribute("aria-label", "Blend mode");
+      modes.forEach(function (mode) {
+        var option = document.createElement("option");
+        option.value = mode;
+        option.textContent = mode === "source-over" ? "Normal" : mode;
+        blend.appendChild(option);
+      });
+      blend.value = layer.blend;
+      blend.addEventListener("change", function () {
+        layer.blend = blend.value;
+        draw();
+      });
+      var remove = document.createElement("button");
+      remove.type = "button";
+      remove.textContent = "×";
+      remove.setAttribute("aria-label", "Remove image");
+      remove.addEventListener("click", function () {
+        layers.splice(index, 1);
+        if (selectedLayer >= layers.length) selectedLayer = Math.max(0, layers.length - 1);
+        pans = {};
+        paintLayers();
+        draw();
+      });
+      row.appendChild(name);
+      row.appendChild(blend);
+      row.appendChild(remove);
+      host.appendChild(row);
+    });
+  }
+
+  function readImage(file) {
+    return new Promise(function (resolve) {
+      var reader = new FileReader();
+      reader.onload = function () {
+        var next = new Image();
+        next.onload = function () { resolve({ name: file.name, image: next }); };
+        next.onerror = function () { resolve(null); };
+        next.src = reader.result;
+      };
+      reader.onerror = function () { resolve(null); };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  function randomizeSlice() {
+    if (!layers.length) return;
+    var countH = 1 + Math.floor(Math.random() * 3);
+    var countV = Math.floor(Math.random() * 3);
+    lines = [];
+    var i;
+    for (i = 0; i < countH; i += 1) lines.push({ id: "add" + (serial += 1), axis: "h", value: 0.18 + Math.random() * 0.64, added: true });
+    for (i = 0; i < countV; i += 1) lines.push({ id: "add" + (serial += 1), axis: "v", value: 0.18 + Math.random() * 0.64, added: true });
+    layers.forEach(function (layer) {
+      layer.dx = (Math.random() - 0.5) * layer.image.width * 0.5;
+      layer.dy = (Math.random() - 0.5) * layer.image.height * 0.5;
+    });
+    rebuildPlate();
+    pans = {};
+    cells().forEach(function (cell) {
+      var sw = (cell.x1 - cell.x0) * image.width;
+      var sh = (cell.y1 - cell.y0) * image.height;
+      pans[cell.key] = {
+        x: (Math.random() - 0.5) * Math.max(0, image.width - sw),
+        y: (Math.random() - 0.5) * Math.max(0, image.height - sh)
+      };
+    });
+    show = true;
+    document.getElementById("slice-view-guides").setAttribute("aria-pressed", "true");
+    draw();
+  }
+
   function draw() {
     if (document.body.dataset.view !== "slice") return;
+    rebuildPlate();
     var source = prepare(octx, original);
     fitBox = source;
     if (source && image) octx.drawImage(image, source.x, source.y, source.w, source.h);
@@ -228,22 +341,28 @@
     document.getElementById("slice-file").click();
   });
   document.getElementById("slice-file").addEventListener("change", function (event) {
-    var file = event.target.files && event.target.files[0];
-    if (!file) return;
-    var reader = new FileReader();
-    reader.onload = function () {
-      var next = new Image();
-      next.onload = function () {
-        image = next;
-        pans = {};
-        document.getElementById("slice-name").textContent = file.name;
-        document.getElementById("slice-status").textContent = "";
-        draw();
-      };
-      next.src = reader.result;
-    };
-    reader.readAsDataURL(file);
+    var files = Array.prototype.slice.call(event.target.files || []);
+    event.target.value = "";
+    if (!files.length) return;
+    Promise.all(files.map(readImage)).then(function (loaded) {
+      loaded.forEach(function (item) {
+        if (!item) return;
+        layers.push({
+          name: item.name,
+          image: item.image,
+          blend: layers.length ? "multiply" : "source-over",
+          dx: 0,
+          dy: 0
+        });
+      });
+      selectedLayer = Math.max(0, layers.length - 1);
+      pans = {};
+      document.getElementById("slice-status").textContent = "";
+      paintLayers();
+      draw();
+    });
   });
+  document.getElementById("slice-random").addEventListener("click", randomizeSlice);
   document.querySelectorAll("#slice-grids button").forEach(function (button) {
     button.addEventListener("click", function () {
       grid = button.dataset.grid;
@@ -287,6 +406,23 @@
     draw();
   });
   guidesEl.addEventListener("pointerup", function () { drag = null; draw(); });
+  var sourcePane = document.getElementById("slice-source");
+  sourcePane.addEventListener("pointerdown", function (event) {
+    if (event.target.closest(".guide") || !layers[selectedLayer] || !fitBox) return;
+    var layer = layers[selectedLayer];
+    drag = { kind: "layer", x: event.clientX, y: event.clientY, dx: layer.dx || 0, dy: layer.dy || 0, scale: fitBox.scale };
+    sourcePane.setPointerCapture(event.pointerId);
+  });
+  sourcePane.addEventListener("pointermove", function (event) {
+    if (!drag || drag.kind !== "layer") return;
+    var layer = layers[selectedLayer];
+    layer.dx = drag.dx + (event.clientX - drag.x) / drag.scale;
+    layer.dy = drag.dy + (event.clientY - drag.y) / drag.scale;
+    draw();
+  });
+  sourcePane.addEventListener("pointerup", function () {
+    if (drag && drag.kind === "layer") drag = null;
+  });
   cut.addEventListener("pointerdown", function (event) {
     var hit = cellAt(event);
     if (!hit) return;
