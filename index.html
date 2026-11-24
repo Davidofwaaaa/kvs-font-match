@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>KVS tools [Font match]</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' fill='%23fff' stroke='%23000'/%3E%3Crect x='1' y='1' width='7' height='14' fill='%23000'/%3E%3C/svg%3E" />
+  <link rel="stylesheet" href="css/styles.css?v=1" />
+</head>
+<body>
+  <header class="mast">
+    <p class="name">KVS tools [Font match]</p>
+    <p class="mast-note" id="mast-note">SHEET</p>
+    <div class="theme" role="group" aria-label="Color mode">
+      <button type="button" id="theme-light" aria-pressed="true">Light</button>
+      <button type="button" id="theme-dark" aria-pressed="false">Dark</button>
+    </div>
+  </header>
+  <div class="columns">
+    <section class="panel" aria-label="Fonts">
+      <h2>Fonts</h2>
+      <p class="note">Check the group. All mixes every pair both ways, on every grid that is on.</p>
+      <div id="font-list" class="font-list"></div>
+      <label class="add-font">Add fonts
+        <input id="add-fonts" type="file" accept=".ttf,.otf,.woff,.woff2" multiple hidden />
+      </label>
+      <h2 class="section">Text</h2>
+      <input id="sample" type="text" value="A" maxlength="24" autocomplete="off" spellcheck="false" aria-label="Text on the sheet" />
+      <h2 class="section">Grids</h2>
+      <div id="grid-list" class="checks"></div>
+      <h2 class="section">Run</h2>
+      <div class="row">
+        <label for="random-count">Count</label>
+        <input id="random-count" type="number" min="1" max="80" value="12" />
+      </div>
+      <button type="button" id="randomize">Randomize</button>
+      <button type="button" id="all">All variations</button>
+      <p class="note" id="run-note"></p>
+    </section>
+    <section class="field" aria-label="Sheet">
+      <svg id="stage" role="img" aria-label="Variation sheet"></svg>
+      <p id="status" role="status"></p>
+    </section>
+    <section class="panel" aria-label="Sheet">
+      <h2>Sheet</h2>
+      <p class="note" id="sheet-note">Select at least two fonts.</p>
+      <div class="row">
+        <label for="columns">Columns</label>
+        <input id="columns" type="number" min="2" max="16" value="11" />
+      </div>
+      <div class="pager">
+        <button type="button" id="prev">Prev</button>
+        <span id="page-label">1 / 1</span>
+        <button type="button" id="next">Next</button>
+      </div>
+      <h2 class="section">Single out</h2>
+      <p class="note" id="cell-note">Click a cell. Shift-click marks it for the font export.</p>
+      <label class="stack" for="cell-a">Font I
+        <select id="cell-a" disabled></select>
+      </label>
+      <label class="stack" for="cell-b">Font II
+        <select id="cell-b" disabled></select>
+      </label>
+      <label class="stack" for="cell-grid">Grid
+        <select id="cell-grid" disabled></select>
+      </label>
+      <h2 class="section">Export</h2>
+      <button type="button" id="export-svg">Export page SVG</button>
+      <button type="button" id="export-pdf">Export page PDF</button>
+      <button type="button" id="export-all">Export all PDF</button>
+      <button type="button" id="export-fonts">Export fonts</button>
+      <p class="note">The font export is a zip of the mixed OpenType files and a list of the pair and grid used for each one. Shift-clicked cells export alone. Otherwise every variation on the sheet is included.</p>
+    </section>
+  </div>
+  <canvas id="paper" hidden></canvas>
+  <script src="vendor/opentype.min.js"></script>
+  <script src="vendor/paper-core.min.js"></script>
+  <script src="js/remix.js?v=2"></script>
+  <script src="js/app.js?v=3"></script>
+</body>
+</html>
