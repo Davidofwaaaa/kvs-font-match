@@ -361,7 +361,9 @@
     document.getElementById("sheet-note").textContent = variations.length
       ? headerLine(page)
       : "Select at least two fonts.";
-    document.getElementById("mast-note").textContent = "SHEET  " + variations.length;
+    if (document.body.dataset.view === "sheet") {
+      document.getElementById("mast-note").textContent = "SHEET  " + variations.length;
+    }
     renderPage(stage, page);
     syncSingle();
     document.body.dataset.ready = variations.length ? "yes" : "empty";
@@ -651,26 +653,35 @@
 
   function showView(name) {
     var sheet = name === "sheet";
-    document.getElementById("specimen-view").hidden = sheet;
-    document.getElementById("sheet-view").hidden = !sheet;
+    document.body.dataset.view = sheet ? "sheet" : "specimen";
     document.getElementById("view-specimen").setAttribute("aria-pressed", sheet ? "false" : "true");
     document.getElementById("view-sheet").setAttribute("aria-pressed", sheet ? "true" : "false");
+    document.getElementById("view-specimen-2").setAttribute("aria-pressed", sheet ? "false" : "true");
+    document.getElementById("view-sheet-2").setAttribute("aria-pressed", sheet ? "true" : "false");
     document.getElementById("mast-note").textContent = sheet ? "SHEET  " + variations.length : "SPECIMEN";
     if (!sheet && window.KVS && window.KVS.redrawSpecimen) window.KVS.redrawSpecimen();
     if (sheet) draw();
   }
+
+  window.KVS = window.KVS || {};
+  window.KVS.refreshFonts = function () {
+    paintFonts();
+    paintCellSelects();
+  };
 
   function applyTheme(name, persist) {
     document.body.dataset.theme = name === "dark" ? "dark" : "light";
     document.getElementById("theme-light").setAttribute("aria-pressed", name === "dark" ? "false" : "true");
     document.getElementById("theme-dark").setAttribute("aria-pressed", name === "dark" ? "true" : "false");
     if (persist) localStorage.setItem("font-remix-theme", name);
-    if (variations.length && !document.getElementById("sheet-view").hidden) draw();
+    if (variations.length && document.body.dataset.view === "sheet") draw();
     if (window.KVS && window.KVS.redrawSpecimen) window.KVS.redrawSpecimen();
   }
 
   document.getElementById("view-specimen").addEventListener("click", function () { showView("specimen"); });
   document.getElementById("view-sheet").addEventListener("click", function () { showView("sheet"); });
+  document.getElementById("view-specimen-2").addEventListener("click", function () { showView("specimen"); });
+  document.getElementById("view-sheet-2").addEventListener("click", function () { showView("sheet"); });
   document.getElementById("theme-light").addEventListener("click", function () { applyTheme("light", true); });
   document.getElementById("theme-dark").addEventListener("click", function () { applyTheme("dark", true); });
   document.getElementById("all").addEventListener("click", runAll);

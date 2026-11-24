@@ -5,15 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>KVS tools [Font match]</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' fill='%23fff' stroke='%23000'/%3E%3Crect x='1' y='1' width='7' height='14' fill='%23000'/%3E%3C/svg%3E" />
-  <link rel="stylesheet" href="css/styles.css?v=2" />
+  <link rel="stylesheet" href="css/styles.css?v=3" />
 </head>
-<body>
+<body data-view="specimen">
   <header class="mast">
     <p class="name">KVS tools [Font match]</p>
-    <div class="views" role="group" aria-label="View">
-      <button type="button" id="view-specimen" aria-pressed="true">Specimen</button>
-      <button type="button" id="view-sheet" aria-pressed="false">Sheet</button>
-    </div>
     <p class="mast-note" id="mast-note">SPECIMEN</p>
     <div class="theme" role="group" aria-label="Color mode">
       <button type="button" id="theme-light" aria-pressed="true">Light</button>
@@ -21,36 +17,82 @@
     </div>
   </header>
 
-  <div id="specimen-view">
-    <div class="specimen-bar">
-      <label>I <select id="font-a" aria-label="Font I"></select></label>
-      <button type="button" id="swap">Swap</button>
-      <label>II <select id="font-b" aria-label="Font II"></select></label>
-      <div class="grids" id="specimen-grids" role="group" aria-label="Grid"></div>
-      <div class="guide-tools">
-        <button type="button" id="letters-btn" aria-pressed="false">Letters</button>
-        <button type="button" id="guide-btn" aria-pressed="true">Guide</button>
-        <button type="button" id="view-guides" aria-pressed="true" title="Show or hide the guide lines">View</button>
-        <button type="button" id="add-guide">Add</button>
-        <button type="button" id="reset-guides" title="Reset guides">Reset</button>
+  <div class="columns" id="shell">
+    <section class="panel" id="specimen-tools" aria-label="Type">
+      <div class="modes" role="group" aria-label="View">
+        <button type="button" id="view-specimen" aria-pressed="true">Specimen</button>
+        <button type="button" id="view-sheet" aria-pressed="false">Sheet</button>
       </div>
-    </div>
-    <div id="specimen-stage">
-      <canvas id="specimen" aria-label="Mixed specimen"></canvas>
-      <input id="composer" aria-label="Specimen text" value="A" autocomplete="off" spellcheck="false" />
-      <div id="guides"></div>
-    </div>
-    <footer class="specimen-foot">
+
+      <h2>Fonts</h2>
+      <div class="modes" role="group" aria-label="Library">
+        <button type="button" id="lib-local" aria-pressed="true">Local</button>
+        <button type="button" id="lib-google" aria-pressed="false">Google</button>
+      </div>
+      <input id="font-find" type="search" placeholder="Search" autocomplete="off" spellcheck="false" aria-label="Search fonts" />
+      <div class="modes" role="group" aria-label="Which font">
+        <button type="button" id="slot-a" aria-pressed="true">I</button>
+        <button type="button" id="slot-b" aria-pressed="false">II</button>
+        <button type="button" id="swap">Swap</button>
+      </div>
+      <p class="note" id="pair-note"></p>
+      <div id="font-menu" role="listbox" aria-label="Fonts"></div>
+      <button type="button" id="open-folder">Open folder</button>
+      <input id="folder" type="file" accept=".ttf,.otf,.woff,.woff2" webkitdirectory multiple hidden />
+
+      <h2 class="section">Grid</h2>
+      <div class="grids" id="specimen-grids" role="group" aria-label="Grid">
+        <button type="button" data-grid="hHalfFold" aria-pressed="true" aria-label="Horizontal">
+          <span class="mark"><i style="top:50%"></i></span>
+        </button>
+        <button type="button" data-grid="vHalfFold" aria-pressed="false" aria-label="Vertical">
+          <span class="mark"><i style="left:50%;width:1px;height:100%"></i></span>
+        </button>
+        <button type="button" data-grid="triFold" aria-pressed="false" aria-label="Thirds">
+          <span class="mark"><i style="top:33%"></i><i style="top:66%"></i></span>
+        </button>
+        <button type="button" data-grid="quadFold" aria-pressed="false" aria-label="Quarters">
+          <span class="mark"><i style="top:25%"></i><i style="top:50%"></i><i style="top:75%"></i></span>
+        </button>
+        <button type="button" data-grid="checker" aria-pressed="false" aria-label="Checker">
+          <span class="mark"><i style="top:50%"></i><i style="left:50%;width:1px;height:100%"></i></span>
+        </button>
+      </div>
+
+      <h2 class="section">Guides</h2>
+      <div class="modes">
+        <button type="button" id="guide-btn" aria-pressed="true">Guide</button>
+        <button type="button" id="view-guides" aria-pressed="true">View</button>
+        <button type="button" id="add-guide">Add</button>
+        <button type="button" id="reset-guides">Reset</button>
+      </div>
+      <button type="button" id="letters-btn" aria-pressed="false">Letters</button>
       <div id="letter-picks" hidden></div>
-      <label class="size-label">S <input id="size" type="range" min="80" max="720" value="280" aria-label="Size" /></label>
+
+      <h2 class="section">Type</h2>
+      <label class="param" for="size">Size
+        <input id="size" type="range" min="40" max="900" value="280" />
+      </label>
+      <label class="param" for="track">Tracking
+        <input id="track" type="range" min="-40" max="200" value="0" />
+      </label>
+      <label class="param" for="kern">Kerning
+        <input id="kern" type="range" min="-80" max="80" value="0" />
+      </label>
+      <button type="button" id="mass-btn" aria-pressed="false">Center of mass</button>
+
+      <h2 class="section">Export</h2>
       <button type="button" id="clear-text">Clear</button>
       <button type="button" id="save-svg">SVG</button>
       <button type="button" id="save-font">Download</button>
-    </footer>
-  </div>
+      <p class="note" id="specimen-status"></p>
+    </section>
 
-  <div class="columns" id="sheet-view" hidden>
-    <section class="panel" aria-label="Fonts">
+    <section class="panel" id="sheet-tools" aria-label="Fonts">
+      <div class="modes" role="group" aria-label="View">
+        <button type="button" id="view-specimen-2" aria-pressed="false">Specimen</button>
+        <button type="button" id="view-sheet-2" aria-pressed="true">Sheet</button>
+      </div>
       <h2>Fonts</h2>
       <p class="note">Check the group. All mixes every pair both ways, on every grid that is on.</p>
       <div id="font-list" class="font-list"></div>
@@ -58,7 +100,7 @@
         <input id="add-fonts" type="file" accept=".ttf,.otf,.woff,.woff2" multiple hidden />
       </label>
       <h2 class="section">Text</h2>
-      <input id="sample" type="text" value="A" maxlength="24" autocomplete="off" spellcheck="false" aria-label="Text on the sheet" />
+      <input id="sample" type="text" value="A" maxlength="32" autocomplete="off" spellcheck="false" aria-label="Text on the sheet" />
       <h2 class="section">Grids</h2>
       <div id="grid-list" class="checks"></div>
       <h2 class="section">Run</h2>
@@ -70,11 +112,21 @@
       <button type="button" id="all">All variations</button>
       <p class="note" id="run-note"></p>
     </section>
-    <section class="field" aria-label="Sheet">
-      <svg id="stage" role="img" aria-label="Variation sheet"></svg>
-      <p id="status" role="status"></p>
+
+    <section class="field" id="field" aria-label="Specimen">
+      <div id="specimen-view">
+        <canvas id="specimen" aria-label="Mixed specimen"></canvas>
+        <input id="composer" aria-label="Specimen text" value="A" autocomplete="off" spellcheck="false" />
+        <div id="guides"></div>
+        <div id="caret" hidden></div>
+      </div>
+      <div id="sheet-field">
+        <svg id="stage" role="img" aria-label="Variation sheet"></svg>
+        <p id="status" role="status"></p>
+      </div>
     </section>
-    <section class="panel" aria-label="Sheet">
+
+    <section class="panel" id="sheet-side" aria-label="Sheet">
       <h2>Sheet</h2>
       <p class="note" id="sheet-note">Select at least two fonts.</p>
       <div class="row">
@@ -109,7 +161,7 @@
   <script src="vendor/opentype.min.js"></script>
   <script src="vendor/paper-core.min.js"></script>
   <script src="js/remix.js?v=2"></script>
-  <script src="js/app.js?v=4"></script>
-  <script src="js/specimen.js?v=1"></script>
+  <script src="js/app.js?v=5"></script>
+  <script src="js/specimen.js?v=2"></script>
 </body>
 </html>
