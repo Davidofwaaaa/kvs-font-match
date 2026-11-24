@@ -372,11 +372,11 @@
   function syncSingle() {
     var item = variations[active];
     var note = document.getElementById("cell-note");
-    ["cell-a", "cell-b", "cell-grid"].forEach(function (id) {
+    ["cell-a", "cell-b", "cell-grid", "open-specimen"].forEach(function (id) {
       document.getElementById(id).disabled = !item;
     });
     if (!item) {
-      note.textContent = "Click a cell. Shift-click marks it for the font export.";
+      note.textContent = "Click a cell. Double-click opens it on the specimen. Shift-click marks it for the font export.";
       return;
     }
     var left = fontById(item.a);
@@ -669,7 +669,15 @@
     if (view === "slice" && window.KVS && window.KVS.redrawSlice) window.KVS.redrawSlice();
   }
 
+  function openSingled() {
+    var item = variations[active];
+    if (!item || !window.KVS || !window.KVS.loadVariation) return;
+    window.KVS.loadVariation(item, sampleText());
+    showView("specimen");
+  }
+
   window.KVS = window.KVS || {};
+  window.KVS.variations = function () { return variations; };
   window.KVS.refreshFonts = function () {
     paintFonts();
     paintCellSelects();
@@ -722,6 +730,7 @@
       runAll();
     });
   });
+  var clickTimer = null;
   stage.addEventListener("click", function (event) {
     var hit = hitAt(event);
     if (!hit) return;
@@ -730,8 +739,17 @@
       if (picked[hit.number]) delete picked[hit.number];
       else picked[hit.number] = true;
     }
-    draw();
+    clearTimeout(clickTimer);
+    clickTimer = setTimeout(draw, 220);
   });
+  stage.addEventListener("dblclick", function (event) {
+    clearTimeout(clickTimer);
+    var hit = hitAt(event);
+    if (!hit) return;
+    active = hit.index;
+    openSingled();
+  });
+  document.getElementById("open-specimen").addEventListener("click", openSingled);
   document.getElementById("cell-a").addEventListener("change", function (event) {
     if (!variations[active]) return;
     variations[active].a = event.target.value;

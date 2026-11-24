@@ -23,7 +23,8 @@
     size: 280,
     track: 0,
     kern: 0,
-    mass: false
+    mass: false,
+    link: null
   };
   var serial = 0;
   var drag = null;
@@ -64,6 +65,65 @@
   function activeLines() {
     if (state.letters && state.letterLines[state.caret]) return state.letterLines[state.caret];
     return state.lines;
+  }
+
+  function linesFromSpec(item) {
+    var kind = FontRemix.grids[item.grid].kind;
+    var next = [];
+    if (kind !== "v") {
+      (item.h || []).forEach(function (value, index) {
+        next.push({ id: "h" + index, axis: "h", value: value });
+      });
+    }
+    if (kind !== "h") {
+      (item.v || []).forEach(function (value, index) {
+        next.push({ id: "v" + index, axis: "v", value: value });
+      });
+    }
+    return next.length ? next : defaultLines(item.grid);
+  }
+
+  function writeBack() {
+    if (!state.link || !window.KVS || !window.KVS.variations) return;
+    if (window.KVS.variations().indexOf(state.link) === -1) {
+      state.link = null;
+      return;
+    }
+    var lines = activeLines();
+    var kind = FontRemix.grids[state.grid].kind;
+    state.link.a = state.a;
+    state.link.b = state.b;
+    state.link.grid = state.grid;
+    if (kind !== "v") {
+      state.link.h = lines.filter(function (line) { return line.axis === "h"; }).map(function (line) { return line.value; });
+    }
+    if (kind !== "h") {
+      state.link.v = lines.filter(function (line) { return line.axis === "v"; }).map(function (line) { return line.value; });
+    }
+  }
+
+  function loadVariation(item, text) {
+    state.link = item;
+    state.a = item.a;
+    state.b = item.b;
+    state.grid = item.grid;
+    state.lines = linesFromSpec(item);
+    state.letterLines = {};
+    state.letters = false;
+    state.guide = true;
+    state.guideView = true;
+    document.getElementById("letters-btn").setAttribute("aria-pressed", "false");
+    document.getElementById("guide-btn").setAttribute("aria-pressed", "true");
+    document.getElementById("view-guides").setAttribute("aria-pressed", "true");
+    document.querySelectorAll("#specimen-grids button").forEach(function (button) {
+      button.setAttribute("aria-pressed", button.dataset.grid === item.grid ? "true" : "false");
+    });
+    if (text) composer.value = text;
+    var index = window.KVS.variations().indexOf(item);
+    pairNote();
+    paintMenu();
+    setStatus(index < 0 ? "" : "Sheet " + (index + 1) + ". Grid and guides write back to this cell.");
+    draw();
   }
 
   function specFrom(lines, grid) {
@@ -135,6 +195,7 @@
 
   function assign(entry) {
     state[state.slot] = entry.id;
+    writeBack();
     pairNote();
     paintMenu();
     draw();
@@ -376,6 +437,7 @@
           var next = activeLines().filter(function (item) { return item.id !== line.id; });
           if (state.letters) state.letterLines[state.caret] = next;
           else state.lines = next;
+          writeBack();
           draw();
         });
         node.appendChild(remove);
@@ -453,6 +515,7 @@
     lines.push({ id: "add" + (serial += 1), axis: axis, value: best, added: true });
     state.guide = true;
     document.getElementById("guide-btn").setAttribute("aria-pressed", "true");
+    writeBack();
     draw();
   }
 
@@ -460,6 +523,7 @@
     var fresh = defaultLines(state.grid);
     if (state.letters) state.letterLines[state.caret] = fresh;
     else state.lines = fresh;
+    writeBack();
     draw();
   }
 
@@ -472,6 +536,7 @@
       if (line.axis === "h") line.value = clamp((box.baseline - (event.clientY - bounds.top)) / box.scale, -120, 900);
       else line.value = clamp((event.clientX - bounds.left - box.left) / box.advance, 0.04, 0.96);
     });
+    writeBack();
     draw();
   }
 
@@ -561,6 +626,7 @@
       state.grid = button.dataset.grid;
       state.lines = defaultLines(state.grid);
       state.letterLines = {};
+      writeBack();
       document.querySelectorAll("#specimen-grids button").forEach(function (other) {
         other.setAttribute("aria-pressed", other === button ? "true" : "false");
       });
@@ -623,6 +689,7 @@
     var hold = state.a;
     state.a = state.b;
     state.b = hold;
+    writeBack();
     pairNote();
     paintMenu();
     draw();
@@ -693,6 +760,7 @@
   document.addEventListener("kvs-fonts", ready);
   window.KVS = window.KVS || {};
   window.KVS.redrawSpecimen = function () { requestAnimationFrame(draw); };
+  window.KVS.loadVariation = loadVariation;
   if (fonts().length) ready();
   else fetch("fonts/google-fonts.json").then(function (response) { return response.json(); }).then(function (data) { catalog = data; }).catch(function () {});
 }());
