@@ -62,12 +62,22 @@ button:disabled, select:disabled { opacity: 0.4; }
   height: calc(100% - 32px);
 }
 
-body[data-view="specimen"] .columns { grid-template-columns: 232px minmax(0, 1fr); }
+body[data-view="specimen"] .columns,
+body[data-view="slice"] .columns { grid-template-columns: 232px minmax(0, 1fr); }
 body[data-view="specimen"] #sheet-tools,
 body[data-view="specimen"] #sheet-field,
 body[data-view="specimen"] #sheet-side,
+body[data-view="specimen"] #slice-tools,
+body[data-view="specimen"] #slice-view,
 body[data-view="sheet"] #specimen-tools,
-body[data-view="sheet"] #specimen-view { display: none; }
+body[data-view="sheet"] #specimen-view,
+body[data-view="sheet"] #slice-tools,
+body[data-view="sheet"] #slice-view,
+body[data-view="slice"] #specimen-tools,
+body[data-view="slice"] #specimen-view,
+body[data-view="slice"] #sheet-tools,
+body[data-view="slice"] #sheet-field,
+body[data-view="slice"] #sheet-side { display: none; }
 
 .panel {
   overflow: auto;
@@ -149,7 +159,12 @@ input[type="search"], input[type="text"], input[type="number"], select {
 #letter-picks button + button { border-left: 0; }
 
 .field { position: relative; min-width: 0; min-height: 0; }
-#specimen-view, #sheet-field, #stage { width: 100%; height: 100%; }
+#specimen-view, #sheet-field, #stage, #slice-view { width: 100%; height: 100%; }
+#slice-view { display: grid; grid-template-columns: 1fr 1fr; }
+.slice-pane { position: relative; min-width: 0; min-height: 0; }
+.slice-pane + .slice-pane { border-left: 1px solid var(--ink); }
+.slice-pane canvas { display: block; width: 100%; height: 100%; }
+#slice-guides { position: absolute; inset: 0; }
 #specimen { display: block; width: 100%; height: 100%; }
 #composer {
   position: absolute;

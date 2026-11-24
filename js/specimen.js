@@ -224,7 +224,7 @@
   }
 
   function draw() {
-    if (document.body.dataset.view === "sheet") return;
+    if (document.body.dataset.view !== "specimen") return;
     var left = fontById(state.a);
     var right = fontById(state.b);
     var width = canvas.clientWidth;

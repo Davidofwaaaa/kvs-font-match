@@ -652,15 +652,21 @@
   }
 
   function showView(name) {
-    var sheet = name === "sheet";
-    document.body.dataset.view = sheet ? "sheet" : "specimen";
-    document.getElementById("view-specimen").setAttribute("aria-pressed", sheet ? "false" : "true");
-    document.getElementById("view-sheet").setAttribute("aria-pressed", sheet ? "true" : "false");
-    document.getElementById("view-specimen-2").setAttribute("aria-pressed", sheet ? "false" : "true");
-    document.getElementById("view-sheet-2").setAttribute("aria-pressed", sheet ? "true" : "false");
-    document.getElementById("mast-note").textContent = sheet ? "SHEET  " + variations.length : "SPECIMEN";
-    if (!sheet && window.KVS && window.KVS.redrawSpecimen) window.KVS.redrawSpecimen();
-    if (sheet) draw();
+    var view = name === "sheet" || name === "slice" ? name : "specimen";
+    document.body.dataset.view = view;
+    ["", "-2", "-3"].forEach(function (suffix) {
+      var specimen = document.getElementById("view-specimen" + suffix);
+      var sheet = document.getElementById("view-sheet" + suffix);
+      var slice = document.getElementById("view-slice" + suffix);
+      if (specimen) specimen.setAttribute("aria-pressed", view === "specimen" ? "true" : "false");
+      if (sheet) sheet.setAttribute("aria-pressed", view === "sheet" ? "true" : "false");
+      if (slice) slice.setAttribute("aria-pressed", view === "slice" ? "true" : "false");
+    });
+    document.querySelector(".name").textContent = view === "slice" ? "KVS tools [Slice]" : "KVS tools [Font match]";
+    document.getElementById("mast-note").textContent = view === "sheet" ? "SHEET  " + variations.length : view === "slice" ? "SLICE" : "SPECIMEN";
+    if (view === "specimen" && window.KVS && window.KVS.redrawSpecimen) window.KVS.redrawSpecimen();
+    if (view === "sheet") draw();
+    if (view === "slice" && window.KVS && window.KVS.redrawSlice) window.KVS.redrawSlice();
   }
 
   window.KVS = window.KVS || {};
@@ -676,12 +682,18 @@
     if (persist) localStorage.setItem("font-remix-theme", name);
     if (variations.length && document.body.dataset.view === "sheet") draw();
     if (window.KVS && window.KVS.redrawSpecimen) window.KVS.redrawSpecimen();
+    if (window.KVS && window.KVS.redrawSlice) window.KVS.redrawSlice();
   }
 
   document.getElementById("view-specimen").addEventListener("click", function () { showView("specimen"); });
   document.getElementById("view-sheet").addEventListener("click", function () { showView("sheet"); });
   document.getElementById("view-specimen-2").addEventListener("click", function () { showView("specimen"); });
   document.getElementById("view-sheet-2").addEventListener("click", function () { showView("sheet"); });
+  document.getElementById("view-slice").addEventListener("click", function () { showView("slice"); });
+  document.getElementById("view-slice-2").addEventListener("click", function () { showView("slice"); });
+  document.getElementById("view-slice-3").addEventListener("click", function () { showView("slice"); });
+  document.getElementById("view-specimen-3").addEventListener("click", function () { showView("specimen"); });
+  document.getElementById("view-sheet-3").addEventListener("click", function () { showView("sheet"); });
   document.getElementById("theme-light").addEventListener("click", function () { applyTheme("light", true); });
   document.getElementById("theme-dark").addEventListener("click", function () { applyTheme("dark", true); });
   document.getElementById("all").addEventListener("click", runAll);
