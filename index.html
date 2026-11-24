@@ -5,18 +5,51 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>KVS tools [Font match]</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' fill='%23fff' stroke='%23000'/%3E%3Crect x='1' y='1' width='7' height='14' fill='%23000'/%3E%3C/svg%3E" />
-  <link rel="stylesheet" href="css/styles.css?v=1" />
+  <link rel="stylesheet" href="css/styles.css?v=2" />
 </head>
 <body>
   <header class="mast">
     <p class="name">KVS tools [Font match]</p>
-    <p class="mast-note" id="mast-note">SHEET</p>
+    <div class="views" role="group" aria-label="View">
+      <button type="button" id="view-specimen" aria-pressed="true">Specimen</button>
+      <button type="button" id="view-sheet" aria-pressed="false">Sheet</button>
+    </div>
+    <p class="mast-note" id="mast-note">SPECIMEN</p>
     <div class="theme" role="group" aria-label="Color mode">
       <button type="button" id="theme-light" aria-pressed="true">Light</button>
       <button type="button" id="theme-dark" aria-pressed="false">Dark</button>
     </div>
   </header>
-  <div class="columns">
+
+  <div id="specimen-view">
+    <div class="specimen-bar">
+      <label>I <select id="font-a" aria-label="Font I"></select></label>
+      <button type="button" id="swap">Swap</button>
+      <label>II <select id="font-b" aria-label="Font II"></select></label>
+      <div class="grids" id="specimen-grids" role="group" aria-label="Grid"></div>
+      <div class="guide-tools">
+        <button type="button" id="letters-btn" aria-pressed="false">Letters</button>
+        <button type="button" id="guide-btn" aria-pressed="true">Guide</button>
+        <button type="button" id="view-guides" aria-pressed="true" title="Show or hide the guide lines">View</button>
+        <button type="button" id="add-guide">Add</button>
+        <button type="button" id="reset-guides" title="Reset guides">Reset</button>
+      </div>
+    </div>
+    <div id="specimen-stage">
+      <canvas id="specimen" aria-label="Mixed specimen"></canvas>
+      <input id="composer" aria-label="Specimen text" value="A" autocomplete="off" spellcheck="false" />
+      <div id="guides"></div>
+    </div>
+    <footer class="specimen-foot">
+      <div id="letter-picks" hidden></div>
+      <label class="size-label">S <input id="size" type="range" min="80" max="720" value="280" aria-label="Size" /></label>
+      <button type="button" id="clear-text">Clear</button>
+      <button type="button" id="save-svg">SVG</button>
+      <button type="button" id="save-font">Download</button>
+    </footer>
+  </div>
+
+  <div class="columns" id="sheet-view" hidden>
     <section class="panel" aria-label="Fonts">
       <h2>Fonts</h2>
       <p class="note">Check the group. All mixes every pair both ways, on every grid that is on.</p>
@@ -76,6 +109,7 @@
   <script src="vendor/opentype.min.js"></script>
   <script src="vendor/paper-core.min.js"></script>
   <script src="js/remix.js?v=2"></script>
-  <script src="js/app.js?v=3"></script>
+  <script src="js/app.js?v=4"></script>
+  <script src="js/specimen.js?v=1"></script>
 </body>
 </html>
