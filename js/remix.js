@@ -209,7 +209,7 @@
     var a = pathCenter(pathA);
     var b = pathCenter(pathB);
     if (!a || !b || !compound) return;
-    compound.translate(new paper.Point(a.x - b.x, a.y - b.y));
+    compound.translate(new paper.Point(a.x - b.x, 0));
   }
 
   function remixChar(fontA, fontB, ch, spec) {
